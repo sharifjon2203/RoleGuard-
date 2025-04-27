@@ -1,4 +1,6 @@
 import jwt from "jsonwebtoken"
+import { generateOtp, verifyOtp } from "../utils/generate.otp.js"
+
 
 import User from '../models/user.model.js';
 
@@ -70,16 +72,44 @@ export class UserController {
         }
     }
 
+
+
+
     async createUser(req, res) {
         try {
             const { error, value } = adminValidator(req.body);
             if (error) {
-                catchError(res, 400, error);
+                return catchError(res, 400, error);
             }
-            const { username, password } = value;
+            const { username, password, email } = value;
             const hashedPassword = await decode(password, 7);
+
+            const otp = await generateOtp()
+
+            if (!otp) {
+                return catchError(res, 500, "Error while creating OTP Code");
+            }
+
+
+            const mailMessage = {
+                from: process.env.SMTP_USER,
+                to: email,
+                subject: "OTP Code",
+                text: `OTP Code: ${otp}`
+            }
+
+            transporter.sendMail(mailMessage, (err, info) => {
+                if (err) {
+                    // console.log(err)
+                    return catchError(res, 400, "error while sending mail")
+                } else {
+                    console.log(info)
+                }
+
+            })
+
             const user = await User.create({
-                username, hashedPassword,
+                username, hashedPassword, email
             });
             return res.status(201).json({
                 statusCode: 201,
@@ -87,11 +117,13 @@ export class UserController {
                 data: user
             });
         } catch (error) {
-            console.log(error)
+            // console.log(error)
             if (error.code === 11000) {
                 return catchError(res, 409, "User already exists!");
+            } else {
+                return catchError(res, 500, error);
             }
-            catchError(res, 500, error);
+
         }
     }
 

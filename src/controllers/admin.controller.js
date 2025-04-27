@@ -74,6 +74,7 @@ export class AdminController {
                 secure: true,
                 maxAge: 30 * 24 * 60 * 60 * 1000
             });
+            
             const mailMessage = {
                 from: process.env.SMTP_USER,
                 to: "sharifjoncodm@gmail.com",
