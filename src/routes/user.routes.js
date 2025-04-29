@@ -16,6 +16,7 @@ const adminController = new AdminController()
 router
     .post("/register", controller.createUser)
     .post("/login", controller.loginUser)
+    .post("/confirm-login", controller.confirmLoginUser)
     .post("/signout", JwtAuthGuard, UserGuard, controller.signOut)
     .post("/token", adminController.accessToken)
     .post("/books/create", JwtAuthGuard, guard, BookController.createBook)

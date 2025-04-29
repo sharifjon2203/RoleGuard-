@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken"
 import { generateOtp, verifyOtp } from "../utils/generate.otp.js"
+import { getCache, setCache } from "../utils/cache.js"
 
 
 import User from '../models/user.model.js';
@@ -25,7 +26,74 @@ export class UserController {
             if (!isMatchPassword) {
                 catchError(res, 400, 'Invalid password');
             }
-            const payload = { id: user._id, role: "user" };
+
+            const otp = await generateOtp()
+
+            const mailMessage = {
+                from: process.env.SMTP_USER,
+                to: 'sharifjoncodm@gmail.com',
+                subject: 'OTP Code:',
+                text: `OTP Code: ${otp}`,
+            };
+
+            transporter.sendMail(mailMessage, function (err, info) {
+                if (err) {
+                    console.log(`Error on sending to mail: ${err}`)
+                    catchError(res, 400, err);
+                } else {
+                    // console.log(info);
+                    setCache(user.username, otp)
+
+                }
+            });
+
+
+
+            return res.status(200).json({
+                statusCode: 200,
+                message: 'success',
+                data: {}
+            });
+
+
+            // const payload = { id: user._id, role: "user" };
+            // const accessToken = generateAccessToken(payload);
+            // const refreshToken = generateRefreshToken(payload);
+            // res.cookie('refreshToken', refreshToken, {
+            //     httpOnly: true,
+            //     secure: true,
+            //     maxAge: 30 * 24 * 60 * 60 * 1000
+            // });
+
+
+            // return res.status(200).json({
+            //     statusCode: 200,
+            //     message: 'success',
+            //     accessToken
+            // });
+
+
+        } catch (error) {
+            console.log(error)
+            catchError(res, 500, error.message);
+        }
+    }
+
+    async confirmLoginUser(req, res) {
+        try {
+            const { username, otp } = req.body
+            const user = await User.findOne({ username })
+
+            if (!user) {
+                catchError(res, 404, "User not found")
+            }
+
+            const otpCache = getCache(username)
+            if (!otpCache || otp != otpCache) {
+                catchError(res, 500, "OTP expired")
+            }
+
+            const payload = { id: user._id, role: user.role };
             const accessToken = generateAccessToken(payload);
             const refreshToken = generateRefreshToken(payload);
             res.cookie('refreshToken', refreshToken, {
@@ -34,19 +102,18 @@ export class UserController {
                 maxAge: 30 * 24 * 60 * 60 * 1000
             });
 
-
             return res.status(200).json({
                 statusCode: 200,
-                message: 'success',
-                accessToken
-            });
+                message: "success",
+                data: accessToken
+            })
 
 
-        } catch (error) {
-            console.log(error)
-            catchError(res, 500, error.message);
+        } catch (e) {
+            catchError(res, 500, e.message)
         }
     }
+
 
 
     async signOut(req, res) {
