@@ -1,6 +1,10 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import { config } from 'dotenv';
+import morgan from 'morgan'
+import fs from 'fs'
+
+import path from "path"
 
 import { connectDB } from './db/index.js';
 
@@ -11,6 +15,19 @@ config();
 
 const app = express();
 const PORT = +process.env.PORT;
+
+
+
+const _dirname = path.resolve()
+// console.log(_dirname)
+
+
+const filePath = fs.createWriteStream(path.join(_dirname, "logs.log"), { flags: "a" })
+
+
+
+
+app.use(morgan("dev", { stream: filePath }))
 
 app.use(express.json());
 app.use(cookieParser());
