@@ -27,7 +27,7 @@ const filePath = fs.createWriteStream(path.join(_dirname, "logs.log"), { flags: 
 
 
 
-app.use(morgan("dev", { stream: filePath }))
+app.use(morgan("combined", { stream: filePath }))
 
 app.use(express.json());
 app.use(cookieParser());
